@@ -1,3 +1,5 @@
+import 'expo-router/entry';
+
 export const USER_ROLES = {
     CLIENT: 'client',
     BARBER: 'barber',
