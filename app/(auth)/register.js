@@ -17,12 +17,16 @@ export default function RegisterScreen() {
     const router = useRouter();
 
     const handleRegister = async () => {
-        if (!fullName || !email || !password) {
-            Alert.alert('Greška', 'Popunite sva obavezna polja');
+        if (!fullName || !email || !password || !phone) {
+            Alert.alert('Greška', 'Sva polja su obavezna');
             return;
         }
         if (password.length < 6) {
             Alert.alert('Greška', 'Lozinka mora imati najmanje 6 karaktera');
+            return;
+        }
+        if (phone.length < 9) {
+            Alert.alert('Greška', 'Unesite ispravan broj telefona');
             return;
         }
 
@@ -51,12 +55,11 @@ export default function RegisterScreen() {
                 <View style={styles.header}>
                     <Text style={styles.logo}>✂️</Text>
                     <Text style={styles.title}>Kreirajte nalog</Text>
-                    <Text style={styles.subtitle}>Brzo i jednostavno</Text>
                 </View>
 
                 <View style={styles.form}>
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Ime i prezime *</Text>
+                        <Text style={styles.label}>Ime i prezime</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Marko Marković"
@@ -68,7 +71,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Email adresa *</Text>
+                        <Text style={styles.label}>Email adresa</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="vase@email.com"
@@ -85,7 +88,7 @@ export default function RegisterScreen() {
                         <Text style={styles.label}>Broj telefona</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="+381641234567"
+                            placeholder="060 555 333"
                             placeholderTextColor={COLORS.textLight}
                             value={phone}
                             onChangeText={setPhone}
@@ -94,7 +97,7 @@ export default function RegisterScreen() {
                     </View>
 
                     <View style={styles.inputGroup}>
-                        <Text style={styles.label}>Lozinka *</Text>
+                        <Text style={styles.label}>Lozinka</Text>
                         <TextInput
                             style={styles.input}
                             placeholder="Min. 6 karaktera"

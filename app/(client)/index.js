@@ -9,7 +9,8 @@ import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 
 export default function HomeScreen() {
     const [profile, setProfile] = useState(null);
-    const [barbers, setBarbers] = useState([]);
+    const [barber, setBarber] = useState(null);
+    const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
@@ -29,16 +30,22 @@ export default function HomeScreen() {
 
             setProfile(profileData);
 
-            const { data: barbersData } = await supabase
+            const { data: barberData } = await supabase
                 .from('barbers')
-                .select(`
-          *,
-          profiles (full_name, avatar_url),
-          salons (name, address)
-        `)
-                .eq('is_active', true);
+                .select(`*, profiles(full_name), salons(name, address)`)
+                .eq('is_active', true)
+                .single();
 
-            setBarbers(barbersData || []);
+            setBarber(barberData);
+
+            if (barberData) {
+                const { data: servicesData } = await supabase
+                    .from('services')
+                    .select('*')
+                    .eq('barber_id', barberData.id);
+
+                setServices(servicesData || []);
+            }
         } catch (error) {
             console.log('Error:', error);
         } finally {
@@ -66,52 +73,78 @@ export default function HomeScreen() {
                 <View style={styles.header}>
                     <View>
                         <Text style={styles.greeting}>Zdravo, {profile?.full_name?.split(' ')[0]} 👋</Text>
-                        <Text style={styles.subtitle}>Zakaži termin danas</Text>
                     </View>
                     <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
                         <Text style={styles.logoutText}>Odjavi se</Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Banner */}
-                <View style={styles.banner}>
-                    <Text style={styles.bannerTitle}>✂️ Frizerski Salon</Text>
-                    <Text style={styles.bannerSubtitle}>Profesionalni frizeri na jednom mestu</Text>
-                </View>
-
-                {/* Frizeri */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Naši frizeri</Text>
-
-                    {barbers.length === 0 ? (
-                        <View style={styles.emptyState}>
-                            <Text style={styles.emptyIcon}>✂️</Text>
-                            <Text style={styles.emptyText}>Frizeri će uskoro biti dostupni</Text>
+                {/* Salon Info */}
+                {barber && (
+                    <View style={styles.salonBanner}>
+                        <Text style={styles.salonName}>✂️ {barber.salons?.name}</Text>
+                        <Text style={styles.salonAddress}>📍 {barber.salons?.address}</Text>
+                        <View style={styles.barberRow}>
+                            <View style={styles.barberAvatar}>
+                                <Text style={styles.barberAvatarText}>
+                                    {barber.profiles?.full_name?.charAt(0)}
+                                </Text>
+                            </View>
+                            <View>
+                                <Text style={styles.barberName}>{barber.profiles?.full_name}</Text>
+                                {/*<Text style={styles.barberRating}>⭐ {barber.rating} · Profesionalni frizer</Text>*/}
+                            </View>
                         </View>
-                    ) : (
-                        barbers.map((barber) => (
-                            <TouchableOpacity
-                                key={barber.id}
-                                style={styles.barberCard}
-                                onPress={() => router.push(`/(client)/barber/${barber.id}`)}
-                            >
-                                <View style={styles.barberAvatar}>
-                                    <Text style={styles.barberAvatarText}>
-                                        {barber.profiles?.full_name?.charAt(0) || '?'}
-                                    </Text>
-                                </View>
-                                <View style={styles.barberInfo}>
-                                    <Text style={styles.barberName}>{barber.profiles?.full_name}</Text>
-                                    <Text style={styles.barberSalon}>{barber.salons?.name}</Text>
-                                    <Text style={styles.barberAddress}>{barber.salons?.address}</Text>
-                                </View>
-                                <View style={styles.ratingBadge}>
-                                    <Text style={styles.ratingText}>⭐ {barber.rating}</Text>
-                                </View>
-                            </TouchableOpacity>
-                        ))
-                    )}
+                    </View>
+                )}
+
+                {/* Usluge */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Izaberi uslugu</Text>
+                    {services.map((service) => (
+                        <TouchableOpacity
+                            key={service.id}
+                            style={styles.serviceCard}
+                            onPress={() => router.push({
+                                pathname: '/(client)/booking',
+                                params: {
+                                    serviceId: service.id,
+                                    serviceName: service.name,
+                                    servicePrice: service.price,
+                                    serviceDuration: service.duration_minutes,
+                                    barberId: barber.id,
+                                    barberName: barber.profiles?.full_name,
+                                }
+                            })}
+                        >
+                            <View style={styles.serviceInfo}>
+                                <Text style={styles.serviceName}>{service.name}</Text>
+                                <Text style={styles.serviceDescription}>{service.description}</Text>
+                                <Text style={styles.serviceDuration}>⏱ {service.duration_minutes} min</Text>
+                            </View>
+                            <View style={styles.servicePriceContainer}>
+                                <Text style={styles.servicePrice}>{service.price} RSD</Text>
+                                <Text style={styles.serviceArrow}>→</Text>
+                            </View>
+                        </TouchableOpacity>
+                    ))}
                 </View>
+
+                {/* Moji termini dugme */}
+                <TouchableOpacity
+                    style={styles.appointmentsBtn}
+                    onPress={() => router.push('/(client)/appointments')}
+                >
+                    <Text style={styles.appointmentsBtnText}>📅 Moji termini</Text>
+                </TouchableOpacity>
+
+                {/* Moj pro */}
+                <TouchableOpacity
+                    style={styles.profileBtn}
+                    onPress={() => router.push('/(client)/profile')}
+                >
+                    <Text style={styles.profileBtnText}>👤 Moj profil</Text>
+                </TouchableOpacity>
 
             </ScrollView>
         </SafeAreaView>
@@ -156,23 +189,54 @@ const styles = StyleSheet.create({
         color: COLORS.gray,
         fontWeight: '600',
     },
-    banner: {
+    salonBanner: {
         margin: SPACING.lg,
         marginTop: 0,
-        padding: SPACING.xl,
+        padding: SPACING.lg,
         backgroundColor: COLORS.primary,
         borderRadius: BORDER_RADIUS.lg,
-        alignItems: 'center',
     },
-    bannerTitle: {
-        fontSize: 24,
+    salonName: {
+        fontSize: 20,
         fontWeight: 'bold',
         color: COLORS.white,
         marginBottom: SPACING.xs,
     },
-    bannerSubtitle: {
-        fontSize: 14,
+    salonAddress: {
+        fontSize: 13,
         color: 'rgba(255,255,255,0.8)',
+        marginBottom: SPACING.md,
+    },
+    barberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        padding: SPACING.sm,
+        borderRadius: BORDER_RADIUS.md,
+    },
+    barberAvatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    barberAvatarText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+    },
+    barberName: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: COLORS.white,
+    },
+    barberRating: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.8)',
+        marginTop: 2,
     },
     section: {
         padding: SPACING.lg,
@@ -184,75 +248,82 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         marginBottom: SPACING.md,
     },
-    emptyState: {
-        alignItems: 'center',
-        padding: SPACING.xxl,
-        backgroundColor: COLORS.white,
-        borderRadius: BORDER_RADIUS.lg,
-    },
-    emptyIcon: {
-        fontSize: 48,
-        marginBottom: SPACING.md,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: COLORS.textLight,
-        textAlign: 'center',
-    },
-    barberCard: {
+    serviceCard: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: COLORS.white,
         borderRadius: BORDER_RADIUS.lg,
         padding: SPACING.md,
         marginBottom: SPACING.sm,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
+        shadowOpacity: 0.06,
         shadowRadius: 8,
         elevation: 3,
     },
-    barberAvatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: COLORS.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: SPACING.md,
-    },
-    barberAvatarText: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: COLORS.white,
-    },
-    barberInfo: {
+    serviceInfo: {
         flex: 1,
     },
-    barberName: {
+    serviceName: {
         fontSize: 16,
         fontWeight: 'bold',
         color: COLORS.text,
     },
-    barberSalon: {
+    serviceDescription: {
         fontSize: 13,
-        color: COLORS.primary,
-        marginTop: 2,
-    },
-    barberAddress: {
-        fontSize: 12,
         color: COLORS.textLight,
         marginTop: 2,
     },
-    ratingBadge: {
-        backgroundColor: '#FFF9E6',
-        paddingHorizontal: SPACING.sm,
-        paddingVertical: SPACING.xs,
-        borderRadius: BORDER_RADIUS.full,
-    },
-    ratingText: {
-        fontSize: 13,
+    serviceDuration: {
+        fontSize: 12,
+        color: COLORS.primary,
+        marginTop: 4,
         fontWeight: '600',
-        color: '#B8860B',
+    },
+    servicePriceContainer: {
+        alignItems: 'flex-end',
+        gap: SPACING.xs,
+    },
+    servicePrice: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+    },
+    serviceArrow: {
+        fontSize: 18,
+        color: COLORS.primary,
+    },
+    appointmentsBtn: {
+        margin: SPACING.lg,
+        marginTop: 0,
+        marginBottom: SPACING.sm,
+        padding: SPACING.md,
+        backgroundColor: COLORS.white,
+        borderRadius: BORDER_RADIUS.lg,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+    },
+    appointmentsBtnText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: COLORS.primary,
+    },
+    profileBtn: {
+        margin: SPACING.lg,
+        marginTop: 0,
+        padding: SPACING.md,
+        backgroundColor: COLORS.white,
+        borderRadius: BORDER_RADIUS.lg,
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.primary,
+        marginBottom: SPACING.xl,
+    },
+    profileBtnText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: COLORS.primary,
     },
 });

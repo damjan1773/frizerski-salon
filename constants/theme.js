@@ -1,9 +1,9 @@
 export const COLORS = {
-    primary: '#2D6A4F',
-    primaryLight: '#52B788',
-    secondary: '#1B4332',
-    accent: '#D4A017',
-    background: '#F8F9FA',
+    primary: '#1A56DB',       // plava
+    primaryLight: '#76A9FA',  // svetlija plava
+    secondary: '#1E3A8A',     // tamno plava
+    accent: '#D4A017',        // zlatna akcent
+    background: '#F8F9FA',    // bela pozadina
     white: '#FFFFFF',
     black: '#212529',
     gray: '#6C757D',

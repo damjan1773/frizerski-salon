@@ -13,6 +13,7 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const [rememberMe, setRememberMe] = useState(false);
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -72,6 +73,16 @@ export default function LoginScreen() {
                     </View>
 
                     <TouchableOpacity
+                        style={styles.rememberRow}
+                        onPress={() => setRememberMe(!rememberMe)}
+                    >
+                        <View style={[styles.checkbox, rememberMe && styles.checkboxActive]}>
+                            {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.rememberText}>Zapamti me</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
                         style={[styles.button, loading && styles.buttonDisabled]}
                         onPress={handleLogin}
                         disabled={loading}
@@ -90,6 +101,31 @@ export default function LoginScreen() {
                             Nemate nalog? <Text style={styles.linkTextBold}>Registrujte se</Text>
                         </Text>
                     </TouchableOpacity>
+
+                    {/* DEV ONLY - obrisi pre launcha */}
+                    <View style={styles.devButtons}>
+                        <Text style={styles.devLabel}>DEV ONLY</Text>
+                        <View style={styles.devRow}>
+                            <TouchableOpacity
+                                style={styles.devBtn}
+                                onPress={() => {
+                                    setEmail('frizer@gmail.com');
+                                    setPassword('frizer123');
+                                }}
+                            >
+                                <Text style={styles.devBtnText}>✂️ Frizer</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.devBtn}
+                                onPress={() => {
+                                    setEmail('dodicdamjan@gmail.com');
+                                    setPassword('jasamdamjan');
+                                }}
+                            >
+                                <Text style={styles.devBtnText}>👤 Klijent</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
 
             </ScrollView>
@@ -171,5 +207,65 @@ const styles = StyleSheet.create({
     linkTextBold: {
         color: COLORS.primary,
         fontWeight: 'bold',
+    },
+    rememberRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    checkbox: {
+        width: 22,
+        height: 22,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: COLORS.grayLight,
+        backgroundColor: COLORS.white,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    checkboxActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    checkmark: {
+        color: COLORS.white,
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+    rememberText: {
+        fontSize: 14,
+        color: COLORS.text,
+    },
+    devButtons: {
+        marginTop: SPACING.xl,
+        padding: SPACING.md,
+        borderRadius: BORDER_RADIUS.md,
+        borderWidth: 1,
+        borderColor: COLORS.grayLight,
+        borderStyle: 'dashed',
+    },
+    devLabel: {
+        fontSize: 11,
+        color: COLORS.textLight,
+        textAlign: 'center',
+        marginBottom: SPACING.sm,
+        fontWeight: '600',
+        letterSpacing: 1,
+    },
+    devRow: {
+        flexDirection: 'row',
+        gap: SPACING.sm,
+    },
+    devBtn: {
+        flex: 1,
+        padding: SPACING.sm,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: COLORS.grayLight,
+        alignItems: 'center',
+    },
+    devBtnText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: COLORS.gray,
     },
 });

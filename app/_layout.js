@@ -25,10 +25,22 @@ export default function RootLayout() {
     useEffect(() => {
         if (loading) return;
         const inAuthGroup = segments[0] === '(auth)';
+
         if (!session && !inAuthGroup) {
             router.replace('/(auth)/login');
         } else if (session && inAuthGroup) {
-            router.replace('/(client)');
+            supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', session.user.id)
+                .single()
+                .then(({ data }) => {
+                    if (data?.role === 'barber') {
+                        router.replace('/(barber)/dashboard');
+                    } else {
+                        router.replace('/(client)');
+                    }
+                });
         }
     }, [session, loading, segments]);
 
