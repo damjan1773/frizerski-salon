@@ -44,7 +44,7 @@ export default function BookingScreen() {
             const { data: existingAppts } = await supabase
                 .from('appointments')
                 .select('start_time, end_time, status')
-                .eq('barber_id', Number(barberId))
+                .eq('barber_id', barberId)
                 .eq('appointment_date', dateStr);
 
             const slots = [];
@@ -130,7 +130,7 @@ export default function BookingScreen() {
             const { data: checkAppts } = await supabase
                 .from('appointments')
                 .select('id')
-                .eq('barber_id', Number(barberId))
+                .eq('barber_id', barberId)
                 .eq('appointment_date', dateStr)
                 .neq('status', 'cancelled')
                 .lt('start_time', selectedSlot.end + ':00')
@@ -146,7 +146,7 @@ export default function BookingScreen() {
 
             const { error } = await supabase.from('appointments').insert({
                 client_id: user.id,
-                barber_id: Number(barberId),
+                barber_id: barberId,
                 service_id: serviceId,
                 appointment_date: dateStr,
                 start_time: selectedSlot.start + ':00',
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
         gap: SPACING.sm
     },
     slotCard: {
-        paddingVertical: SPACING.md,
+        paddingVertical: SPACING.sm,
         paddingHorizontal: SPACING.lg,
         borderRadius: BORDER_RADIUS.md,
         backgroundColor: COLORS.white,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
     slotText: {
         fontSize: 18,
         fontWeight: '700',
-        color: COLORS.text
+        color: COLORS.text,
     },
     slotTextBooked: {
         textDecorationLine: 'line-through',

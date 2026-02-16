@@ -105,17 +105,19 @@ export default function HomeScreen() {
                         <TouchableOpacity
                             key={service.id}
                             style={styles.serviceCard}
-                            onPress={() => router.push({
-                                pathname: '/(client)/booking',
-                                params: {
-                                    serviceId: service.id,
-                                    serviceName: service.name,
-                                    servicePrice: service.price,
-                                    serviceDuration: service.duration_minutes,
-                                    barberId: barber.id,
-                                    barberName: barber.profiles?.full_name,
-                                }
-                            })}
+                            onPress={() => {
+                                router.push({
+                                    pathname: '/(client)/booking',
+                                    params: {
+                                        serviceId: service.id,
+                                        serviceName: service.name,
+                                        servicePrice: service.price,
+                                        serviceDuration: service.duration_minutes,
+                                        barberId: barber.id,
+                                        barberName: barber.profiles?.full_name,
+                                    }
+                                })
+                            }}
                         >
                             <View style={styles.serviceInfo}>
                                 <Text style={styles.serviceName}>{service.name}</Text>

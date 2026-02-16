@@ -178,7 +178,8 @@ export default function ProfileScreen() {
                             }
                         </TouchableOpacity>
 
-                        {/* Promena lozinke */}
+                        {/* Promena lozinke -- DEV ONLY
+
                         <View style={styles.divider} />
                         <Text style={styles.sectionTitle}>Bezbednost</Text>
 
@@ -187,7 +188,7 @@ export default function ProfileScreen() {
                             onPress={handleChangePassword}
                         >
                             <Text style={styles.passwordBtnText}>🔒 Promeni lozinku</Text>
-                        </TouchableOpacity>
+                        </TouchableOpacity>*/}
 
                     </View>
 

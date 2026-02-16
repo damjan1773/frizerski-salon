@@ -239,22 +239,33 @@ export default function BarberDashboard() {
                 </View>
 
                 {/* Stats */}
+                {/* Stats */}
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Text style={styles.statNumber}>
-                            {appointments.filter(a => a.appointment_date === formatDateLocal(new Date()) && a.status !== 'cancelled').length}
+                            {appointments.filter(a =>
+                                a.appointment_date === formatDateLocal(new Date()) &&
+                                a.status !== 'cancelled'
+                            ).length}
                         </Text>
                         <Text style={styles.statLabel}>Danas</Text>
                     </View>
                     <View style={styles.statCard}>
                         <Text style={styles.statNumber}>
-                            {appointments.filter(a => a.status === 'confirmed').length}
+                            {appointments.filter(a => {
+                                const tomorrow = new Date();
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                return a.appointment_date === formatDateLocal(tomorrow) &&
+                                    a.status !== 'cancelled';
+                            }).length}
                         </Text>
-                        <Text style={styles.statLabel}>Potvrđeni</Text>
+                        <Text style={styles.statLabel}>Sutra</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Text style={styles.statNumber}>{appointments.filter(a => a.status !== 'cancelled').length}</Text>
-                        <Text style={styles.statLabel}>Ukupno</Text>
+                        <Text style={styles.statNumber}>
+                            {appointments.filter(a => a.status !== 'cancelled').length}
+                        </Text>
+                        <Text style={styles.statLabel}>Ova nedelja</Text>
                     </View>
                 </View>
 
@@ -265,23 +276,29 @@ export default function BarberDashboard() {
                         <View style={styles.daysRow}>
                             {getNext14Days().map((day, index) => {
                                 const isSelected = day.toDateString() === selectedDate.toDateString();
+                                const isSunday = day.getDay() === 0;
                                 const hasAppts = getAppointmentsForDate(day).filter(a => a.status !== 'cancelled').length > 0;
                                 return (
                                     <TouchableOpacity
                                         key={index}
-                                        style={[styles.dayCard, isSelected && styles.dayCardActive]}
-                                        onPress={() => setSelectedDate(day)}
+                                        style={[
+                                            styles.dayCard,
+                                            isSelected && styles.dayCardActive,
+                                            isSunday && styles.dayCardUnavailable,
+                                        ]}
+                                        onPress={() => !isSunday && setSelectedDate(day)}
+                                        disabled={isSunday}
                                     >
-                                        <Text style={[styles.dayName, isSelected && styles.dayTextActive]}>
+                                        <Text style={[styles.dayName, isSelected && styles.dayTextActive, isSunday && styles.dayTextUnavailable]}>
                                             {DAYS[day.getDay()]}
                                         </Text>
-                                        <Text style={[styles.dayNumber, isSelected && styles.dayTextActive]}>
+                                        <Text style={[styles.dayNumber, isSelected && styles.dayTextActive, isSunday && styles.dayTextUnavailable]}>
                                             {day.getDate()}
                                         </Text>
-                                        <Text style={[styles.dayMonth, isSelected && styles.dayTextActive]}>
+                                        <Text style={[styles.dayMonth, isSelected && styles.dayTextActive, isSunday && styles.dayTextUnavailable]}>
                                             {MONTHS[day.getMonth()]}
                                         </Text>
-                                        {hasAppts && (
+                                        {hasAppts && !isSunday && (
                                             <View style={[styles.dot, isSelected && styles.dotActive]} />
                                         )}
                                     </TouchableOpacity>
@@ -397,19 +414,21 @@ export default function BarberDashboard() {
 
                             <View style={styles.inputGroup}>
                                 <Text style={styles.label}>Usluga</Text>
-                                <View style={styles.serviceRow}>
-                                    {services.map(s => (
-                                        <TouchableOpacity
-                                            key={s.id}
-                                            style={[styles.serviceChip, newAppt.serviceId === s.id && styles.serviceChipActive]}
-                                            onPress={() => setNewAppt({ ...newAppt, serviceId: s.id })}
-                                        >
-                                            <Text style={[styles.serviceChipText, newAppt.serviceId === s.id && styles.serviceChipTextActive]}>
-                                                {s.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                    <View style={styles.serviceRow}>
+                                        {services.map(s => (
+                                            <TouchableOpacity
+                                                key={s.id}
+                                                style={[styles.serviceChip, newAppt.serviceId === s.id && styles.serviceChipActive]}
+                                                onPress={() => setNewAppt({ ...newAppt, serviceId: s.id })}
+                                            >
+                                                <Text style={[styles.serviceChipText, newAppt.serviceId === s.id && styles.serviceChipTextActive]}>
+                                                    {s.name}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </ScrollView>
                             </View>
 
                             <View style={styles.inputGroup}>
@@ -490,7 +509,12 @@ const styles = StyleSheet.create({
     statLabel: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
     section: { padding: SPACING.lg, paddingTop: 0, marginBottom: SPACING.sm },
     sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.text,
+        marginBottom: SPACING.md
+    },
     addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: BORDER_RADIUS.full },
     addBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 14 },
     daysRow: { flexDirection: 'row', gap: SPACING.sm },
@@ -577,5 +601,13 @@ const styles = StyleSheet.create({
     },
     timeSlotTextActive: {
         color: COLORS.white
+    },
+    dayCardUnavailable: {
+        backgroundColor: '#FFEBEE',
+        borderWidth: 1.5,
+        borderColor: '#FFCDD2',
+    },
+    dayTextUnavailable: {
+        color: '#E53935',
     },
 });
