@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
+import { cancelAppointmentReminder } from '../../lib/notifications';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
 
@@ -55,10 +56,20 @@ export default function AppointmentsScreen() {
                     text: 'Da, otkaži',
                     style: 'destructive',
                     onPress: async () => {
+                        // Dohvati notification_id i otkaži podsetnik
+                        const { data: appt } = await supabase
+                            .from('appointments')
+                            .select('notification_id')
+                            .eq('id', appointmentId)
+                            .single();
+
+                        await cancelAppointmentReminder(appt?.notification_id);
+
                         await supabase
                             .from('appointments')
                             .update({ status: 'cancelled' })
                             .eq('id', appointmentId);
+
                         fetchAppointments();
                     }
                 }

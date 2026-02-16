@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { formatDateLocal } from '../../lib/helpers';
+import { scheduleAppointmentReminder } from '../../lib/notifications';
 
 const MONTHS = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar',
     'Decembar'];
@@ -144,7 +145,7 @@ export default function BookingScreen() {
                 return;
             }
 
-            const { error } = await supabase.from('appointments').insert({
+            const { data: newAppt, error } = await supabase.from('appointments').insert({
                 client_id: user.id,
                 barber_id: barberId,
                 service_id: serviceId,
@@ -152,7 +153,7 @@ export default function BookingScreen() {
                 start_time: selectedSlot.start + ':00',
                 end_time: selectedSlot.end + ':00',
                 status: 'confirmed',
-            });
+            }).select().single();
 
             if (error) {
                 if (error.code === '23505') {
@@ -163,6 +164,16 @@ export default function BookingScreen() {
                     throw error;
                 }
                 return;
+            }
+
+            if (!error && newAppt) {
+                const notificationId = await scheduleAppointmentReminder(newAppt);
+                if (notificationId) {
+                    await supabase
+                        .from('appointments')
+                        .update({ notification_id: notificationId })
+                        .eq('id', newAppt.id);
+                }
             }
 
             Alert.alert(

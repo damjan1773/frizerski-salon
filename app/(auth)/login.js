@@ -10,6 +10,7 @@ import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { AntDesign } from '@expo/vector-icons';
+import { registerForPushNotifications } from '../../lib/notifications';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,7 +33,10 @@ export default function LoginScreen() {
 
         if (error) {
             Alert.alert('Greška pri prijavi', error.message);
-        }
+        } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        registerForPushNotifications(user.id); // ne await, neka ide u pozadini
+    }
     };
 
     const handleGoogleLogin = async () => {
