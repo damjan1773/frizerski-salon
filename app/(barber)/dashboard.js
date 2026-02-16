@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { formatPhone, formatDateLocal } from '../../lib/helpers';
-import {
-    View, Text, ScrollView, StyleSheet,
-    SafeAreaView, ActivityIndicator, TouchableOpacity,
-    Alert, Modal, TextInput, KeyboardAvoidingView, Platform
+import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator,
+    TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, Linking
 } from 'react-native';
 
 const DAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub'];
@@ -361,6 +359,21 @@ export default function BarberDashboard() {
                                 {appt.status === 'confirmed' && (
                                     <View style={styles.apptActions}>
                                         <TouchableOpacity
+                                            style={styles.callBtn}
+                                            onPress={() => {
+                                                const phone = appt.notes?.startsWith('Telefonska')
+                                                    ? appt.notes.split(',')[1]?.trim()
+                                                    : appt.profiles?.phone;
+                                                if (phone) {
+                                                    Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
+                                                } else {
+                                                    Alert.alert('Nema broja', 'Klijent nije uneo broj telefona');
+                                                }
+                                            }}
+                                        >
+                                            <Text style={styles.callBtnText}>📞</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
                                             style={styles.cancelBtn}
                                             onPress={() => updateStatus(appt.id, 'cancelled')}
                                         >
@@ -552,7 +565,11 @@ const styles = StyleSheet.create({
     apptPhone: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
     statusBadge: { alignSelf: 'flex-start', paddingHorizontal: SPACING.sm, paddingVertical: 2, borderRadius: BORDER_RADIUS.full, marginTop: SPACING.xs },
     statusText: { fontSize: 11, fontWeight: '700' },
-    apptActions: { gap: SPACING.xs },
+    apptActions: {
+        gap: SPACING.xs,
+        alignItems: 'center',
+        jusitfyContent: 'center',
+    },
     doneBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#E8F5E9', justifyContent: 'center', alignItems: 'center' },
     doneBtnText: { fontSize: 16, color: '#28A745', fontWeight: 'bold' },
     cancelBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFEBEE', justifyContent: 'center', alignItems: 'center' },

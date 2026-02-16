@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { View, ActivityIndicator } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RootLayout() {
     const [session, setSession] = useState(null);
@@ -43,6 +47,26 @@ export default function RootLayout() {
                 });
         }
     }, [session, loading, segments]);
+
+    useEffect(() => {
+        const handleUrl = async ({ url }) => {
+            if (url?.includes('access_token')) {
+                const params = new URLSearchParams(url.split('#')[1]);
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+
+                if (accessToken) {
+                    await supabase.auth.setSession({
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                    });
+                }
+            }
+        };
+
+        const subscription = Linking.addEventListener('url', handleUrl);
+        return () => subscription?.remove();
+    }, []);
 
     if (loading) {
         return (

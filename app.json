@@ -2,6 +2,7 @@
   "expo": {
     "name": "Frizerski Salon",
     "slug": "frizerski-salon",
+    "scheme": "frizerski-salon",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -23,6 +24,9 @@
       },
       "package": "com.damjan.frizerskisalon"
     },
-    "plugins": ["expo-router"]
+    "plugins": [
+      "expo-router",
+      "expo-web-browser"
+    ]
   }
 }

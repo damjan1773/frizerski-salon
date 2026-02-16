@@ -7,6 +7,11 @@ import {
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import { AntDesign } from '@expo/vector-icons';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function RegisterScreen() {
     const [fullName, setFullName] = useState('');
@@ -128,11 +133,67 @@ export default function RegisterScreen() {
                         </Text>
                     </TouchableOpacity>
                 </View>
+                <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>ili</Text>
+                    <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                    style={styles.googleBtn}
+                    onPress={handleGoogleLogin}
+                >
+                    <View style={styles.googleBtnInner}>
+                        <AntDesign name="google" size={18} color="#DB4437" />
+                        <Text style={styles.googleBtnText}>Nastavi sa Google nalogom</Text>
+                    </View>
+                </TouchableOpacity>
 
             </ScrollView>
         </KeyboardAvoidingView>
     );
 }
+
+const handleGoogleLogin = async () => {
+    try {
+        const redirectUrl = AuthSession.makeRedirectUri({
+            scheme: 'frizerski-salon',
+            path: 'auth/callback',
+        });
+
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: redirectUrl,
+                skipBrowserRedirect: true,
+            },
+        });
+
+        if (error) throw error;
+
+        const result = await WebBrowser.openAuthSessionAsync(
+            data?.url,
+            redirectUrl
+        );
+
+        if (result.type === 'success') {
+            const url = result.url;
+            const params = new URLSearchParams(url.split('#')[1]);
+            const accessToken = params.get('access_token');
+            const refreshToken = params.get('refresh_token');
+
+            if (accessToken) {
+                await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                });
+            }
+        }
+    } catch (error) {
+        Alert.alert('Greška', 'Google prijava nije uspela');
+        console.log(error);
+    }
+};
 
 const styles = StyleSheet.create({
     container: {
@@ -208,5 +269,38 @@ const styles = StyleSheet.create({
     linkTextBold: {
         color: COLORS.primary,
         fontWeight: 'bold',
+    },
+    divider: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+        marginVertical: SPACING.sm,
+    },
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: COLORS.grayLight,
+    },
+    dividerText: {
+        fontSize: 13,
+        color: COLORS.textLight,
+    },
+    googleBtn: {
+        backgroundColor: COLORS.white,
+        borderRadius: BORDER_RADIUS.md,
+        padding: SPACING.md,
+        borderWidth: 1.5,
+        borderColor: COLORS.grayLight,
+    },
+    googleBtnInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+    },
+    googleBtnText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: COLORS.text,
     },
 });
