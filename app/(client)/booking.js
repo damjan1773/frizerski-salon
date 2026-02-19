@@ -122,6 +122,23 @@ export default function BookingScreen() {
             return;
         }
 
+        {/* LIMIT ZA BUKIRANJE VISE OD 2 PUTA */}
+        const { data: activeAppointments } = await supabase
+            .from('appointments')
+            .select('id')
+            .eq('client_id', user.id)
+            .eq('status', 'confirmed')
+            .gte('appointment_date', new Date().toISOString().split('T')[0]);
+
+        if (activeAppointments && activeAppointments.length >= 2) {
+            Alert.alert(
+                'Limit dostignut',
+                'Možete imati maksimalno 2 aktivna termina. Otkažite neki termin da biste zakazali novi.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
+
         setBooking(true);
         try {
             const { data: { user } } = await supabase.auth.getUser();

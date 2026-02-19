@@ -34,9 +34,11 @@ export default function LoginScreen() {
         if (error) {
             Alert.alert('Greška pri prijavi', error.message);
         } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        registerForPushNotifications(user.id); // ne await, neka ide u pozadini
-    }
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.id) {
+                registerForPushNotifications(user.id);
+            }
+        }
     };
 
     const handleGoogleLogin = async () => {
@@ -90,8 +92,7 @@ export default function LoginScreen() {
                 {/* Header */}
                 <View style={styles.header}>
                     <Text style={styles.logo}>✂️</Text>
-                    <Text style={styles.title}>Frizerski Salon</Text>
-                    <Text style={styles.subtitle}>Dobrodošli nazad!</Text>
+                    <Text style={styles.title}>Frizerski salon</Text>
                 </View>
 
                 {/* Form */}
@@ -164,7 +165,7 @@ export default function LoginScreen() {
 
                     {/* DEV ONLY - obrisi pre launcha */}
                     <View style={styles.devButtons}>
-                        <Text style={styles.devLabel}>DEV ONLY</Text>
+                        <Text style={styles.devLabel}>TEST NALOZI</Text>
                         <View style={styles.devRow}>
                             <TouchableOpacity
                                 style={styles.devBtn}
@@ -173,7 +174,7 @@ export default function LoginScreen() {
                                     setPassword('frizer123');
                                 }}
                             >
-                                <Text style={styles.devBtnText}>✂️ Frizer</Text>
+                                <Text style={styles.devBtnText}>Frizer</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.devBtn}
@@ -182,7 +183,7 @@ export default function LoginScreen() {
                                     setPassword('jasamdamjan');
                                 }}
                             >
-                                <Text style={styles.devBtnText}>👤 Klijent</Text>
+                                <Text style={styles.devBtnText}>Klijent</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

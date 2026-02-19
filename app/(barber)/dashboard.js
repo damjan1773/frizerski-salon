@@ -5,6 +5,7 @@ import { formatPhone, formatDateLocal } from '../../lib/helpers';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator,
     TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, Linking
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const DAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
@@ -18,6 +19,7 @@ export default function BarberDashboard() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [showAddModal, setShowAddModal] = useState(false);
     const [newAppt, setNewAppt] = useState({ clientName: '', phone: '', serviceId: '', startTime: '' });
+    const router = useRouter();
 
     useEffect(() => {
         fetchData();
@@ -237,7 +239,6 @@ export default function BarberDashboard() {
                 </View>
 
                 {/* Stats */}
-                {/* Stats */}
                 <View style={styles.statsRow}>
                     <View style={styles.statCard}>
                         <Text style={styles.statNumber}>
@@ -259,17 +260,21 @@ export default function BarberDashboard() {
                         </Text>
                         <Text style={styles.statLabel}>Sutra</Text>
                     </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statNumber}>
-                            {appointments.filter(a => a.status !== 'cancelled').length}
-                        </Text>
-                        <Text style={styles.statLabel}>Ova nedelja</Text>
-                    </View>
+                    <TouchableOpacity
+                        style={[styles.statCard, styles.addCard]}
+                        onPress={() => setShowAddModal(true)}
+                    >
+                        <Text style={styles.addCardIcon}>+</Text>
+                        <Text style={styles.addCardLabel}>Dodaj</Text>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Kalendar */}
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Izaberi dan</Text>
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionTitle}>Izaberi dan</Text>
+
+                    </View>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                         <View style={styles.daysRow}>
                             {getNext14Days().map((day, index) => {
@@ -313,10 +318,10 @@ export default function BarberDashboard() {
                             Termini — {selectedDate.getDate()}. {MONTHS[selectedDate.getMonth()]}
                         </Text>
                         <TouchableOpacity
-                            style={styles.addBtn}
-                            onPress={() => setShowAddModal(true)}
+                            style={styles.historyBtn}
+                            onPress={() => router.push('/(barber)/history')}
                         >
-                            <Text style={styles.addBtnText}>+ Dodaj</Text>
+                            <Text style={styles.historyBtnText}>📜 Istorija</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -521,12 +526,17 @@ const styles = StyleSheet.create({
     statNumber: { fontSize: 28, fontWeight: 'bold', color: COLORS.primary },
     statLabel: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
     section: { padding: SPACING.lg, paddingTop: 0, marginBottom: SPACING.sm },
-    sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.md },
+    sectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: SPACING.md
+    },
     sectionTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.text,
-        marginBottom: SPACING.md
+
     },
     addBtn: { backgroundColor: COLORS.primary, paddingHorizontal: SPACING.md, paddingVertical: SPACING.xs, borderRadius: BORDER_RADIUS.full },
     addBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 14 },
@@ -626,5 +636,32 @@ const styles = StyleSheet.create({
     },
     dayTextUnavailable: {
         color: '#E53935',
+    },
+    historyBtn: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.xs,
+        borderRadius: BORDER_RADIUS.full
+    },
+    historyBtnText: {
+        color: COLORS.white,
+        fontWeight: 'bold',
+        fontSize: 14
+    },
+    addCard: {
+        backgroundColor: COLORS.primary,
+        justifyContent: 'center',
+    },
+    addCardIcon: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: COLORS.white,
+        marginTop: -4,
+    },
+    addCardLabel: {
+        fontSize: 12,
+        color: COLORS.white,
+        marginTop: 4,
+        fontWeight: '600',
     },
 });

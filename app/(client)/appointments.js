@@ -173,7 +173,7 @@ export default function AppointmentsScreen() {
                             {/* Datum i status */}
                             <View style={styles.apptHeader}>
                                 <View style={styles.dateBox}>
-                                    <Text style={styles.dateDay}>{new Date(appt.appointment_date).getDate() + 1}</Text>
+                                    <Text style={styles.dateDay}>{new Date(appt.appointment_date + 'T00:00:00').getDate()}</Text>
                                     <Text style={styles.dateMonth}>
                                         {MONTHS[new Date(appt.appointment_date).getMonth()]}
                                     </Text>

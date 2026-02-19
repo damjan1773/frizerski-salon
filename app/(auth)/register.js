@@ -36,18 +36,28 @@ export default function RegisterScreen() {
         }
 
         setLoading(true);
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
                 data: { full_name: fullName, phone, role: 'client' }
             }
         });
-        setLoading(false);
 
         if (error) {
+            setLoading(false);
             Alert.alert('Greška pri registraciji', error.message);
+            return;
         }
+
+        if (signUpData?.user?.id) {
+            await supabase
+                .from('profiles')
+                .update({ phone })
+                .eq('id', signUpData.user.id);
+        }
+
+        setLoading(false);
     };
 
     return (
