@@ -116,13 +116,13 @@ export default function BookingScreen() {
         if (!profileData?.phone) {
             Alert.alert(
                 'Nedostaje broj telefona',
-                'Molimo dodajte broj telefona u profilu pre zakazivanja.',
+                'Dodajte broj telefona u "Moj profil" pre zakazivanja.',
                 [{ text: 'OK' }]
             );
             return;
         }
 
-        {/* LIMIT ZA BUKIRANJE VISE OD 2 PUTA */}
+        {/* LIMIT ZA BUKIRANJE >= 1 PUT */}
         const { data: activeAppointments } = await supabase
             .from('appointments')
             .select('id')
@@ -130,10 +130,10 @@ export default function BookingScreen() {
             .eq('status', 'confirmed')
             .gte('appointment_date', new Date().toISOString().split('T')[0]);
 
-        if (activeAppointments && activeAppointments.length >= 2) {
+        if (activeAppointments && activeAppointments.length >= 1) {
             Alert.alert(
                 'Limit dostignut',
-                'Možete imati maksimalno 2 aktivna termina. Otkažite neki termin da biste zakazali novi.',
+                'Možete imati maksimalno 1 aktivan termin. Otkažite trenutni termin da biste zakazali novi.',
                 [{ text: 'OK' }]
             );
             return;
@@ -448,3 +448,4 @@ const styles = StyleSheet.create({
     bookBtnDisabled: { opacity: 0.7 },
     bookBtnText: { fontSize: 17, fontWeight: 'bold', color: COLORS.white },
 });
+

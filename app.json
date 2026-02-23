@@ -12,7 +12,6 @@
       "resizeMode": "contain",
       "backgroundColor": "#1a1a2e"
     },
-    "scheme": "frizerski-salon",
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.damjan.frizerskisalon"
@@ -27,6 +26,12 @@
     "plugins": [
       "expo-router",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5fbda5f7-de55-4abe-b883-15a11c727dfa"
+      }
+    }
   }
 }

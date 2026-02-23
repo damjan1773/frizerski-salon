@@ -25,6 +25,30 @@ export default function BarberDashboard() {
         fetchData();
     }, []);
 
+    useEffect(() => {
+        if (!barberId) return;
+
+        const subscription = supabase
+            .channel('appointments-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'appointments',
+                    filter: `barber_id=eq.${barberId}`
+                },
+                () => {
+                    fetchData();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [barberId]);
+
     const fetchData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
@@ -321,7 +345,7 @@ export default function BarberDashboard() {
                             style={styles.historyBtn}
                             onPress={() => router.push('/(barber)/history')}
                         >
-                            <Text style={styles.historyBtnText}>📜 Istorija</Text>
+                            <Text style={styles.historyBtnText}>Istorija</Text>
                         </TouchableOpacity>
                     </View>
 
