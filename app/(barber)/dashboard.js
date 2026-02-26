@@ -3,9 +3,10 @@ import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { formatPhone, formatDateLocal } from '../../lib/helpers';
 import { View, Text, ScrollView, StyleSheet, SafeAreaView, ActivityIndicator,
-    TouchableOpacity, Alert, Modal, TextInput, KeyboardAvoidingView, Platform, Linking
+    TouchableOpacity, Modal, TextInput, KeyboardAvoidingView, Platform, Linking
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const DAYS = ['Ned', 'Pon', 'Uto', 'Sre', 'Čet', 'Pet', 'Sub'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
@@ -19,6 +20,8 @@ export default function BarberDashboard() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [showAddModal, setShowAddModal] = useState(false);
     const [newAppt, setNewAppt] = useState({ clientName: '', phone: '', serviceId: '', startTime: '' });
+    const [cancelConfirm, setCancelConfirm] = useState({ visible: false, appointmentId: null });
+    const [infoDialog, setInfoDialog] = useState({ visible: false, title: '', message: '' });
     const router = useRouter();
 
     useEffect(() => {
@@ -133,31 +136,18 @@ export default function BarberDashboard() {
         }
     };
 
-    const updateStatus = async (appointmentId, newStatus) => {
-        Alert.alert(
-            'Otkaži termin',
-            'Da li ste sigurni da želite da otkažete ovaj termin?',
-            [
-                { text: 'Ne', style: 'cancel' },
-                {
-                    text: 'Da, otkaži',
-                    style: 'destructive',
-                    onPress: async () => {
-                        const { error } = await supabase
-                            .from('appointments')
-                            .update({ status: newStatus })
-                            .eq('id', appointmentId);
+    const updateStatus = (appointmentId) => {
+        setCancelConfirm({ visible: true, appointmentId });
+    };
 
-                        if (error) {
-                            Alert.alert('Greška', 'Nije moguće otkazati termin');
-                            console.log(error);
-                        } else {
-                            fetchData();
-                        }
-                    }
-                }
-            ]
-        );
+    const confirmCancel = async () => {
+        const { appointmentId } = cancelConfirm;
+        setCancelConfirm({ visible: false, appointmentId: null });
+        const { error } = await supabase
+            .from('appointments')
+            .update({ status: 'cancelled' })
+            .eq('id', appointmentId);
+        if (!error) fetchData();
     };
 
     const generateManualSlots = () => {
@@ -202,7 +192,7 @@ export default function BarberDashboard() {
 
     const handleAddManual = async () => {
         if (!newAppt.clientName || !newAppt.startTime || !newAppt.serviceId) {
-            Alert.alert('Greška', 'Popunite ime, vreme i uslugu');
+            setInfoDialog({ visible: true, title: 'Greška', message: 'Popunite ime, vreme i uslugu' });
             return;
         }
 
@@ -230,9 +220,9 @@ export default function BarberDashboard() {
             setShowAddModal(false);
             setNewAppt({ clientName: '', phone: '', serviceId: '', startTime: '' });
             fetchData();
-            Alert.alert('✅ Dodato!', `Termin za ${newAppt.clientName} u ${newAppt.startTime}h`);
+            setInfoDialog({ visible: true, title: '✅ Dodato!', message: `Termin za ${newAppt.clientName} u ${newAppt.startTime}h` });
         } catch (error) {
-            Alert.alert('Greška', 'Nije moguće dodati termin');
+            setInfoDialog({ visible: true, title: 'Greška', message: 'Nije moguće dodati termin' });
             console.log(error);
         }
     };
@@ -404,7 +394,7 @@ export default function BarberDashboard() {
                                                 if (phone) {
                                                     Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
                                                 } else {
-                                                    Alert.alert('Nema broja', 'Klijent nije uneo broj telefona');
+                                                    setInfoDialog({ visible: true, title: 'Nema broja', message: 'Klijent nije uneo broj telefona' });
                                                 }
                                             }}
                                         >
@@ -412,7 +402,7 @@ export default function BarberDashboard() {
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={styles.cancelBtn}
-                                            onPress={() => updateStatus(appt.id, 'cancelled')}
+                                            onPress={() => updateStatus(appt.id)}
                                         >
                                             <Text style={styles.cancelBtnText}>✕</Text>
                                         </TouchableOpacity>
@@ -424,6 +414,24 @@ export default function BarberDashboard() {
                 </View>
 
             </ScrollView>
+
+            <ConfirmDialog
+                visible={cancelConfirm.visible}
+                title="Otkaži termin"
+                message="Da li ste sigurni da želite da otkažete ovaj termin?"
+                confirmText="Da, otkaži"
+                cancelText="Ne"
+                destructive
+                onConfirm={confirmCancel}
+                onCancel={() => setCancelConfirm({ visible: false, appointmentId: null })}
+            />
+            <ConfirmDialog
+                visible={infoDialog.visible}
+                title={infoDialog.title}
+                message={infoDialog.message}
+                confirmText="OK"
+                onConfirm={() => setInfoDialog({ visible: false, title: '', message: '' })}
+            />
 
             {/* Modal za dodavanje */}
             <Modal visible={showAddModal} transparent animationType="slide">

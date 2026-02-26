@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    StyleSheet, SafeAreaView, ActivityIndicator, Alert
+    StyleSheet, SafeAreaView, ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { cancelAppointmentReminder } from '../../lib/notifications';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Avg', 'Sep', 'Okt', 'Nov', 'Dec'];
 
@@ -14,6 +15,7 @@ export default function AppointmentsScreen() {
     const [appointments, setAppointments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('upcoming');
+    const [cancelConfirm, setCancelConfirm] = useState({ visible: false, appointmentId: null });
     const router = useRouter();
 
     useEffect(() => {
@@ -46,35 +48,28 @@ export default function AppointmentsScreen() {
         }
     };
 
-    const handleCancel = async (appointmentId) => {
-        Alert.alert(
-            'Otkaži termin',
-            'Da li ste sigurni da želite da otkažete termin?',
-            [
-                { text: 'Ne', style: 'cancel' },
-                {
-                    text: 'Da, otkaži',
-                    style: 'destructive',
-                    onPress: async () => {
-                        // Dohvati notification_id i otkaži podsetnik
-                        const { data: appt } = await supabase
-                            .from('appointments')
-                            .select('notification_id')
-                            .eq('id', appointmentId)
-                            .single();
+    const handleCancel = (appointmentId) => {
+        setCancelConfirm({ visible: true, appointmentId });
+    };
 
-                        await cancelAppointmentReminder(appt?.notification_id);
+    const confirmCancel = async () => {
+        const { appointmentId } = cancelConfirm;
+        setCancelConfirm({ visible: false, appointmentId: null });
 
-                        await supabase
-                            .from('appointments')
-                            .update({ status: 'cancelled' })
-                            .eq('id', appointmentId);
+        const { data: appt } = await supabase
+            .from('appointments')
+            .select('notification_id')
+            .eq('id', appointmentId)
+            .single();
 
-                        fetchAppointments();
-                    }
-                }
-            ]
-        );
+        await cancelAppointmentReminder(appt?.notification_id);
+
+        await supabase
+            .from('appointments')
+            .update({ status: 'cancelled' })
+            .eq('id', appointmentId);
+
+        fetchAppointments();
     };
 
     const getFilteredAppointments = () => {
@@ -120,6 +115,16 @@ export default function AppointmentsScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <ConfirmDialog
+                visible={cancelConfirm.visible}
+                title="Otkaži termin"
+                message="Da li ste sigurni da želite da otkažete termin?"
+                confirmText="Da, otkaži"
+                cancelText="Ne"
+                destructive
+                onConfirm={confirmCancel}
+                onCancel={() => setCancelConfirm({ visible: false, appointmentId: null })}
+            />
 
             {/* Header */}
             <View style={styles.header}>

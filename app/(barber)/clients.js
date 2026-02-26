@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     View, Text, ScrollView, StyleSheet, SafeAreaView,
-    ActivityIndicator, TouchableOpacity, Alert, Switch
+    ActivityIndicator, TouchableOpacity
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -28,66 +28,51 @@ export default function ClientsScreen() {
 
             if (!barberData) return;
 
-            const { data: appointments } = await supabase
-                .from('appointments')
-                .select(`
-                    client_id,
-                    status,
-                    notes,
-                    services(price)
-                `)
-                .eq('barber_id', barberData.id);
+            // Dohvati sve klijente (role = 'client')
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, full_name, phone')
+                .eq('role', 'client');
 
-            // Skupi jedinstvene client ID-ove
-            const clientIds = [...new Set(
-                appointments
-                    ?.filter(a => !a.notes?.startsWith('Telefonska'))
-                    .map(a => a.client_id)
-                    .filter(Boolean)
-            )];
-
-            if (clientIds.length === 0) {
+            if (!profiles || profiles.length === 0) {
                 setClients([]);
                 return;
             }
 
-            // Direktno dohvati profile sa is_banned
-            const { data: profiles } = await supabase
-                .from('profiles')
-                .select('id, full_name, phone, is_banned')
-                .in('id', clientIds);
+            // Dohvati sve termine za ovog frizera
+            const { data: appointments } = await supabase
+                .from('appointments')
+                .select('client_id, status, notes, services(price)')
+                .eq('barber_id', barberData.id);
 
-            const profileMap = {};
-            profiles?.forEach(p => { profileMap[p.id] = p; });
-
-            // Izračunaj statistike po klijentu
-            const clientMap = {};
+            // Izgradi mapu statistika po klijentu
+            const statsMap = {};
             appointments?.forEach(appt => {
                 if (appt.notes?.startsWith('Telefonska')) return;
                 const id = appt.client_id;
-                if (!id || !profileMap[id]) return;
-
-                if (!clientMap[id]) {
-                    const p = profileMap[id];
-                    clientMap[id] = {
-                        id,
-                        name: p.full_name || 'Nepoznat',
-                        phone: p.phone || null,
-                        isBanned: p.is_banned === true,
-                        booked: 0,
-                        cancelled: 0,
-                        totalSpent: 0,
-                    };
+                if (!id) return;
+                if (!statsMap[id]) {
+                    statsMap[id] = { booked: 0, cancelled: 0, totalSpent: 0 };
                 }
                 if (appt.status === 'cancelled') {
-                    clientMap[id].cancelled++;
+                    statsMap[id].cancelled++;
                 } else {
-                    clientMap[id].booked++;
-                    clientMap[id].totalSpent += appt.services?.price || 0;
+                    statsMap[id].booked++;
+                    statsMap[id].totalSpent += appt.services?.price || 0;
                 }
             });
 
-            const sorted = Object.values(clientMap).sort((a, b) =>
+            // Spoji profile sa statistikama
+            const result = profiles.map(p => ({
+                id: p.id,
+                name: p.full_name || 'Nepoznat',
+                phone: p.phone || null,
+                booked: statsMap[p.id]?.booked || 0,
+                cancelled: statsMap[p.id]?.cancelled || 0,
+                totalSpent: statsMap[p.id]?.totalSpent || 0,
+            }));
+
+            const sorted = result.sort((a, b) =>
                 a.name.localeCompare(b.name, 'sr')
             );
             setClients(sorted);
@@ -96,51 +81,6 @@ export default function ClientsScreen() {
         } finally {
             setLoading(false);
         }
-    };
-
-    const handleSwitchToggle = (clientId, currentBanned) => {
-        const willBeBanned = !currentBanned;
-        const title = willBeBanned ? 'Zabrani zakazivanje' : 'Dozvoli zakazivanje';
-        const message = willBeBanned
-            ? 'Ovaj klijent neće moći da zakazuje termine.'
-            : 'Ovaj klijent će ponovo moći da zakazuje termine.';
-
-        // Optimistički updateuj odmah da switch animira
-        setClients(prev =>
-            prev.map(c => c.id === clientId ? { ...c, isBanned: willBeBanned } : c)
-        );
-
-        Alert.alert(title, message, [
-            {
-                text: 'Odustani',
-                style: 'cancel',
-                onPress: () => {
-                    // Revertuj ako je otkazano
-                    setClients(prev =>
-                        prev.map(c => c.id === clientId ? { ...c, isBanned: currentBanned } : c)
-                    );
-                }
-            },
-            {
-                text: willBeBanned ? 'Zabrani' : 'Dozvoli',
-                style: willBeBanned ? 'destructive' : 'default',
-                onPress: async () => {
-                    const { error } = await supabase.rpc('set_client_banned', {
-                        target_client_id: clientId,
-                        banned: willBeBanned,
-                    });
-
-                    if (error) {
-                        // Revertuj ako je Supabase greška
-                        setClients(prev =>
-                            prev.map(c => c.id === clientId ? { ...c, isBanned: currentBanned } : c)
-                        );
-                        Alert.alert('Greška', 'Nije moguće promeniti status klijenta');
-                        console.log(error);
-                    }
-                }
-            }
-        ]);
     };
 
     if (loading) {
@@ -169,14 +109,13 @@ export default function ClientsScreen() {
                     </View>
                 ) : (
                     clients.map(client => (
-                        <View key={client.id} style={[styles.card, client.isBanned && styles.cardBanned]}>
+                        <View key={client.id} style={styles.card}>
                             <View style={styles.cardTop}>
-                                <View style={[styles.avatar, client.isBanned && styles.avatarBanned]}>
-                                    <Text style={[styles.avatarText, client.isBanned && styles.avatarTextBanned]}>
+                                <View style={styles.avatar}>
+                                    <Text style={styles.avatarText}>
                                         {client.name?.charAt(0)?.toUpperCase() || '?'}
                                     </Text>
                                 </View>
-
                                 <View style={styles.clientInfo}>
                                     <Text style={styles.clientName} numberOfLines={1}>
                                         {client.name}
@@ -185,14 +124,6 @@ export default function ClientsScreen() {
                                         {client.phone ? `📞 ${client.phone}` : 'Nema broja telefona'}
                                     </Text>
                                 </View>
-
-                                <Switch
-                                    value={!client.isBanned}
-                                    onValueChange={() => handleSwitchToggle(client.id, client.isBanned)}
-                                    trackColor={{ false: COLORS.error + '99', true: COLORS.success + '99' }}
-                                    thumbColor={client.isBanned ? COLORS.error : COLORS.success}
-                                    ios_backgroundColor={COLORS.error + '99'}
-                                />
                             </View>
 
                             <View style={styles.statsRow}>
@@ -275,11 +206,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 3,
     },
-    cardBanned: {
-        borderWidth: 1.5,
-        borderColor: COLORS.error + '50',
-        backgroundColor: '#FFF8F8',
-    },
     cardTop: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -293,23 +219,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: SPACING.md,
-        flexShrink: 0,
-    },
-    avatarBanned: {
-        backgroundColor: COLORS.error + '15',
     },
     avatarText: {
         fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.primary,
     },
-    avatarTextBanned: {
-        color: COLORS.error,
-    },
-    clientInfo: {
-        flex: 1,
-        marginRight: SPACING.sm,
-    },
+    clientInfo: { flex: 1 },
     clientName: {
         fontSize: 15,
         fontWeight: 'bold',

@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import {
     View, Text, ScrollView, TouchableOpacity,
-    StyleSheet, SafeAreaView, ActivityIndicator, Alert
+    StyleSheet, SafeAreaView, ActivityIndicator
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../lib/supabase';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { formatDateLocal } from '../../lib/helpers';
 import { scheduleAppointmentReminder } from '../../lib/notifications';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const MONTHS = ['Januar', 'Februar', 'Mart', 'April', 'Maj', 'Jun', 'Jul', 'Avgust', 'Septembar', 'Oktobar', 'Novembar',
     'Decembar'];
@@ -24,6 +25,7 @@ export default function BookingScreen() {
     const [fullyBookedDates, setFullyBookedDates] = useState([]);
     const [loading, setLoading] = useState(false);
     const [booking, setBooking] = useState(false);
+    const [dialog, setDialog] = useState({ visible: false, title: '', message: '', onOk: null });
 
     const getNext14Days = () => {
         const days = [];
@@ -101,37 +103,29 @@ export default function BookingScreen() {
         generateTimeSlots(date);
     };
 
+    const showDialog = (title, message, onOk = null) => {
+        setDialog({ visible: true, title, message, onOk });
+    };
+
     const handleBooking = async () => {
         if (!selectedDate || !selectedSlot) {
-            Alert.alert('Greška', 'Izaberite datum i vreme');
+            showDialog('Greška', 'Izaberite datum i vreme');
             return;
         }
+
         const { data: { user } } = await supabase.auth.getUser();
+
         const { data: profileData } = await supabase
             .from('profiles')
-            .select('phone, is_banned')
+            .select('phone')
             .eq('id', user.id)
             .single();
 
-        if (profileData?.is_banned) {
-            Alert.alert(
-                'Zakazivanje onemogućeno',
-                'Vaš nalog je privremeno blokiran. Kontaktirajte salon za više informacija.',
-                [{ text: 'OK' }]
-            );
-            return;
-        }
-
         if (!profileData?.phone) {
-            Alert.alert(
-                'Nedostaje broj telefona',
-                'Dodajte broj telefona u "Moj profil" pre zakazivanja.',
-                [{ text: 'OK' }]
-            );
+            showDialog('Nedostaje broj telefona', 'Dodajte broj telefona u "Moj profil" pre zakazivanja.');
             return;
         }
 
-        {/* LIMIT ZA BUKIRANJE >= 1 PUT */}
         const { data: activeAppointments } = await supabase
             .from('appointments')
             .select('id')
@@ -140,20 +134,14 @@ export default function BookingScreen() {
             .gte('appointment_date', new Date().toISOString().split('T')[0]);
 
         if (activeAppointments && activeAppointments.length >= 1) {
-            Alert.alert(
-                'Limit dostignut',
-                'Možete imati maksimalno 1 aktivan termin. Otkažite trenutni termin da biste zakazali novi.',
-                [{ text: 'OK' }]
-            );
+            showDialog('Limit dostignut', 'Možete imati maksimalno 1 aktivan termin. Otkažite trenutni termin da biste zakazali novi.');
             return;
         }
 
         setBooking(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
             const dateStr = formatDateLocal(selectedDate);
 
-            // Double check availability
             const { data: checkAppts } = await supabase
                 .from('appointments')
                 .select('id')
@@ -164,10 +152,10 @@ export default function BookingScreen() {
                 .gt('end_time', selectedSlot.start + ':00');
 
             if (checkAppts && checkAppts.length > 0) {
-                Alert.alert('Zauzeto!', 'Ovaj termin je upravo zauzet. Molimo izaberite drugi.');
+                setBooking(false);
                 generateTimeSlots(selectedDate);
                 setSelectedSlot(null);
-                setBooking(false);
+                showDialog('Zauzeto!', 'Ovaj termin je upravo zauzet. Molimo izaberite drugi.');
                 return;
             }
 
@@ -182,17 +170,19 @@ export default function BookingScreen() {
             }).select().single();
 
             if (error) {
+                setBooking(false);
                 if (error.code === '23505') {
-                    Alert.alert('Zauzeto!', 'Neko je upravo zakazao ovaj termin. Izaberite drugi termin.');
-                    generateTimeSlots(selectedDate); // refresh slotove
+                    generateTimeSlots(selectedDate);
                     setSelectedSlot(null);
+                    showDialog('Zauzeto!', 'Neko je upravo zakazao ovaj termin. Izaberite drugi termin.');
                 } else {
-                    throw error;
+                    showDialog('Greška', 'Nije moguće zakazati termin');
+                    console.log(error);
                 }
                 return;
             }
 
-            if (!error && newAppt) {
+            if (newAppt) {
                 const notificationId = await scheduleAppointmentReminder(newAppt);
                 if (notificationId) {
                     await supabase
@@ -202,21 +192,32 @@ export default function BookingScreen() {
                 }
             }
 
-            Alert.alert(
+            setBooking(false);
+            showDialog(
                 '✅ Termin zakazan!',
                 `${serviceName} u ${selectedSlot.start}h\n${selectedDate.getDate()}. ${MONTHS[selectedDate.getMonth()]}`,
-                [{ text: 'OK', onPress: () => router.replace('/(client)') }]
+                () => router.replace('/(client)')
             );
         } catch (error) {
-            Alert.alert('Greška', 'Nije moguće zakazati termin');
-            console.log(error);
-        } finally {
             setBooking(false);
+            showDialog('Greška', 'Nije moguće zakazati termin');
+            console.log(error);
         }
     };
 
     return (
         <SafeAreaView style={styles.container}>
+            <ConfirmDialog
+                visible={dialog.visible}
+                title={dialog.title}
+                message={dialog.message}
+                confirmText="OK"
+                onConfirm={() => {
+                    const cb = dialog.onOk;
+                    setDialog({ visible: false, title: '', message: '', onOk: null });
+                    if (cb) cb();
+                }}
+            />
 
             {/* Header */}
             <View style={styles.header}>
