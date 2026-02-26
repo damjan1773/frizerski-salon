@@ -163,7 +163,7 @@ export default function LoginScreen() {
                         </View>
                     </TouchableOpacity>
 
-                    {/* DEV ONLY - obrisi pre launcha - TEST NALOZI
+                    {/* DEV ONLY - obrisi pre launcha - TEST NALOZI */}
                     <View style={styles.devButtons}>
                         <Text style={styles.devLabel}>TEST NALOZI</Text>
                         <View style={styles.devRow}>
@@ -187,7 +187,6 @@ export default function LoginScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                    */}
                 </View>
 
             </ScrollView>

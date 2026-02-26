@@ -109,9 +109,18 @@ export default function BookingScreen() {
         const { data: { user } } = await supabase.auth.getUser();
         const { data: profileData } = await supabase
             .from('profiles')
-            .select('phone')
+            .select('phone, is_banned')
             .eq('id', user.id)
             .single();
+
+        if (profileData?.is_banned) {
+            Alert.alert(
+                'Zakazivanje onemogućeno',
+                'Vaš nalog je privremeno blokiran. Kontaktirajte salon za više informacija.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
 
         if (!profileData?.phone) {
             Alert.alert(

@@ -257,9 +257,17 @@ export default function BarberDashboard() {
                         <Text style={styles.greeting}>✂️ {profile?.full_name}</Text>
                         <Text style={styles.subtitle}>Tvoj raspored</Text>
                     </View>
-                    <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
-                        <Text style={styles.logoutText}>Odjavi se</Text>
-                    </TouchableOpacity>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity
+                            onPress={() => router.push('/(barber)/clients')}
+                            style={styles.clientsBtn}
+                        >
+                            <Text style={styles.clientsBtnText}>👥 Klijenti</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+                            <Text style={styles.logoutText}>Odjavi se</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Stats */}
@@ -538,6 +546,9 @@ const styles = StyleSheet.create({
     },
     greeting: { fontSize: 22, fontWeight: 'bold', color: COLORS.text },
     subtitle: { fontSize: 14, color: COLORS.textLight, marginTop: 2 },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+    clientsBtn: { padding: SPACING.sm, borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.primary + '15' },
+    clientsBtnText: { fontSize: 13, color: COLORS.primary, fontWeight: '600' },
     logoutBtn: { padding: SPACING.sm, borderRadius: BORDER_RADIUS.sm, backgroundColor: COLORS.grayLight },
     logoutText: { fontSize: 13, color: COLORS.gray, fontWeight: '600' },
     statsRow: { flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.lg, marginBottom: SPACING.md },
