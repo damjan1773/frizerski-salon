@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
     View, Text, ScrollView, StyleSheet, SafeAreaView,
-    ActivityIndicator, TouchableOpacity
+    ActivityIndicator, TouchableOpacity, Switch
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -28,10 +28,9 @@ export default function ClientsScreen() {
 
             if (!barberData) return;
 
-            // Dohvati sve klijente (role = 'client')
             const { data: profiles } = await supabase
                 .from('profiles')
-                .select('id, full_name, phone')
+                .select('id, full_name, phone, is_banned')
                 .eq('role', 'client');
 
             if (!profiles || profiles.length === 0) {
@@ -39,13 +38,11 @@ export default function ClientsScreen() {
                 return;
             }
 
-            // Dohvati sve termine za ovog frizera
             const { data: appointments } = await supabase
                 .from('appointments')
                 .select('client_id, status, notes, services(price)')
                 .eq('barber_id', barberData.id);
 
-            // Izgradi mapu statistika po klijentu
             const statsMap = {};
             appointments?.forEach(appt => {
                 if (appt.notes?.startsWith('Telefonska')) return;
@@ -62,24 +59,44 @@ export default function ClientsScreen() {
                 }
             });
 
-            // Spoji profile sa statistikama
             const result = profiles.map(p => ({
                 id: p.id,
                 name: p.full_name || 'Nepoznat',
                 phone: p.phone || null,
+                isBanned: p.is_banned === true,
                 booked: statsMap[p.id]?.booked || 0,
                 cancelled: statsMap[p.id]?.cancelled || 0,
                 totalSpent: statsMap[p.id]?.totalSpent || 0,
             }));
 
-            const sorted = result.sort((a, b) =>
-                a.name.localeCompare(b.name, 'sr')
-            );
+            const sorted = result.sort((a, b) => a.name.localeCompare(b.name, 'sr'));
             setClients(sorted);
         } catch (error) {
             console.log('Error:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleToggleBan = async (clientId, currentBanned) => {
+        const newBanned = !currentBanned;
+
+        // Optimistički update odmah
+        setClients(prev =>
+            prev.map(c => c.id === clientId ? { ...c, isBanned: newBanned } : c)
+        );
+
+        const { error } = await supabase.rpc('set_client_banned', {
+            target_client_id: clientId,
+            banned: newBanned,
+        });
+
+        if (error) {
+            // Revertuj ako greška
+            setClients(prev =>
+                prev.map(c => c.id === clientId ? { ...c, isBanned: currentBanned } : c)
+            );
+            console.log('Ban error:', error);
         }
     };
 
@@ -105,14 +122,17 @@ export default function ClientsScreen() {
                 {clients.length === 0 ? (
                     <View style={styles.emptyState}>
                         <Text style={styles.emptyIcon}>👥</Text>
-                        <Text style={styles.emptyText}>Nema klijenata koji su koristili aplikaciju</Text>
+                        <Text style={styles.emptyText}>Nema registrovanih klijenata</Text>
                     </View>
                 ) : (
                     clients.map(client => (
-                        <View key={client.id} style={styles.card}>
+                        <View
+                            key={client.id}
+                            style={[styles.card, client.isBanned && styles.cardBanned]}
+                        >
                             <View style={styles.cardTop}>
-                                <View style={styles.avatar}>
-                                    <Text style={styles.avatarText}>
+                                <View style={[styles.avatar, client.isBanned && styles.avatarBanned]}>
+                                    <Text style={[styles.avatarText, client.isBanned && styles.avatarTextBanned]}>
                                         {client.name?.charAt(0)?.toUpperCase() || '?'}
                                     </Text>
                                 </View>
@@ -124,9 +144,19 @@ export default function ClientsScreen() {
                                         {client.phone ? `📞 ${client.phone}` : 'Nema broja telefona'}
                                     </Text>
                                 </View>
+                                <Switch
+                                    value={!client.isBanned}
+                                    onValueChange={() => handleToggleBan(client.id, client.isBanned)}
+                                    trackColor={{
+                                        false: COLORS.error,
+                                        true: COLORS.success,
+                                    }}
+                                    thumbColor={COLORS.white}
+                                    ios_backgroundColor={COLORS.error}
+                                />
                             </View>
 
-                            <View style={styles.statsRow}>
+                            <View style={[styles.statsRow, client.isBanned && styles.statsRowBanned]}>
                                 <View style={styles.statItem}>
                                     <Text style={styles.statValue}>{client.booked}</Text>
                                     <Text style={styles.statLabel}>Zakazano</Text>
@@ -205,6 +235,12 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 8,
         elevation: 3,
+        borderWidth: 1.5,
+        borderColor: 'transparent',
+    },
+    cardBanned: {
+        borderColor: COLORS.error,
+        backgroundColor: '#FFF5F5',
     },
     cardTop: {
         flexDirection: 'row',
@@ -219,13 +255,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: SPACING.md,
+        flexShrink: 0,
+    },
+    avatarBanned: {
+        backgroundColor: COLORS.error + '20',
     },
     avatarText: {
         fontSize: 18,
         fontWeight: 'bold',
         color: COLORS.primary,
     },
-    clientInfo: { flex: 1 },
+    avatarTextBanned: {
+        color: COLORS.error,
+    },
+    clientInfo: {
+        flex: 1,
+        marginRight: SPACING.sm,
+        overflow: 'hidden',
+    },
     clientName: {
         fontSize: 15,
         fontWeight: 'bold',
@@ -241,6 +288,9 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
         borderRadius: BORDER_RADIUS.md,
         padding: SPACING.sm,
+    },
+    statsRowBanned: {
+        backgroundColor: COLORS.error + '10',
     },
     statItem: {
         flex: 1,

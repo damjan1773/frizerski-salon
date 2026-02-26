@@ -117,9 +117,14 @@ export default function BookingScreen() {
 
         const { data: profileData } = await supabase
             .from('profiles')
-            .select('phone')
+            .select('phone, is_banned')
             .eq('id', user.id)
             .single();
+
+        if (profileData?.is_banned === true) {
+            showDialog('Zakazivanje onemogućeno', 'Zakazivanje termina je onemogućeno. Pozovite frizera za više informacija.');
+            return;
+        }
 
         if (!profileData?.phone) {
             showDialog('Nedostaje broj telefona', 'Dodajte broj telefona u "Moj profil" pre zakazivanja.');
