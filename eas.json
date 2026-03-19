@@ -12,7 +12,11 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://isyxtojbitawxxodfxvm.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzeXh0b2piaXRhd3h4b2RmeHZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwMjA0MzUsImV4cCI6MjA4NjU5NjQzNX0.5cEzVubsZvysQDkM8cNDXKlH_rkS4lm4dTZuG4wTDXs"
+      }
     }
   },
   "submit": {
